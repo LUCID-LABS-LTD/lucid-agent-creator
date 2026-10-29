@@ -77,6 +77,8 @@ async function runWorkflow({evaluate,waitFor,send,requests,origin,failOnce}) {
   const stage = number => click(`[data-stage="${number}"]`);
   const field = (name,value) => set(`[data-field="${name}"]`,value);
   await waitFor("document.querySelector('#modelStatus').textContent.includes('available')",'Model catalog did not load');
+  assert.equal(await evaluate("document.querySelector('.topbar a.brand').href"), 'https://lucidlabsltd.com/', 'Brand link should go to the main Lucid Labs website');
+  assert.equal(await evaluate("(()=>{const link=document.querySelector('.topbar a.brand');link.focus();return document.activeElement===link})()"), true, 'Brand link should be keyboard focusable');
   await field('organization','Lucid Labs Ltd');
   await field('role','First AI employee');
   await field('goal','Keep the founder on top of communication');
