@@ -29,7 +29,7 @@ const server = http.createServer(async (req, res) => {
   }
   const file = path.resolve(root, '.' + decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname));
   if (!file.startsWith(root + path.sep) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.statusCode=404; return res.end(); }
-  const mime = {'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.png':'image/png'};
+  const mime = {'.html':'text/html; charset=utf-8','.js':'text/javascript','.css':'text/css','.png':'image/png','.svg':'image/svg+xml'};
   res.setHeader('Content-Type',mime[path.extname(file)] || 'application/octet-stream');
   fs.createReadStream(file).pipe(res);
 });
@@ -137,11 +137,23 @@ async function runWorkflow({evaluate,waitFor,send,requests,origin,failOnce}) {
   assert.equal(await evaluate("document.querySelector('[data-field=sendAuthority]').value"),'Ask for approval first');
   await stage(0);
   assert.equal(await evaluate("document.querySelector('[data-field=organization]').value"),'Lucid Labs Ltd');
-  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
-  await sleep(200);
-  assert.ok(await evaluate('document.documentElement.scrollWidth <= document.documentElement.clientWidth'), 'Mobile page should not overflow horizontally');
+  for (const width of [320,375,430]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:true});
+    await sleep(100);
+    for (let i=0; i<6; i++) {
+      await stage(i);
+      assert.ok(await evaluate('document.documentElement.scrollWidth <= document.documentElement.clientWidth'), `Stage ${i+1} overflows at ${width}px`);
+      assert.ok(await evaluate(`(()=>{const n=document.querySelector('#stageNav').getBoundingClientRect(),a=document.querySelector('#stageNav [aria-current=step]').getBoundingClientRect();return a.left>=n.left-1&&a.right<=n.right+1})()`), `Active stage ${i+1} is clipped at ${width}px`);
+      assert.ok(await evaluate(`Array.from(document.querySelectorAll('#stageContent input, #stageContent textarea, #stageContent select')).every(e=>parseFloat(getComputedStyle(e).fontSize)>=16)`), `Stage ${i+1} inputs should use at least 16px at ${width}px`);
+    }
+    await stage(3);
+    assert.ok(await evaluate(`(()=>{const r=document.querySelector('.boundary-row'),label=r.querySelector('div').getBoundingClientRect(),select=r.querySelector('select').getBoundingClientRect();return select.top>=label.bottom-1})()`), `Boundary controls should stack at ${width}px`);
+    await stage(0);
+    await field('role', `Mobile role ${width}`);
+    assert.equal(await evaluate("document.querySelector('#mobileRole').textContent"), `Mobile role ${width}`, 'Mobile brief should reflect edits immediately');
+    assert.equal(await evaluate("getComputedStyle(document.querySelector('.mobile-brief')).display") !== 'none', true, 'Mobile brief should be available');
+  }
   await stage(5);
-  assert.ok(await evaluate('document.documentElement.scrollWidth <= document.documentElement.clientWidth'), 'Mobile review should not overflow horizontally');
   if (process.env.CREATOR_SCREENSHOT) {
     const screenshot=await send('Page.captureScreenshot',{format:'png'});
     fs.writeFileSync(process.env.CREATOR_SCREENSHOT,Buffer.from(screenshot.data,'base64'));
