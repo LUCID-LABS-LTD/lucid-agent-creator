@@ -1,0 +1,10 @@
+# Deploy only the agent creator and the files needed by its functions.
+/*
+!index.html
+!app.css
+!app.js
+!art_styles
+!api
+!lib
+!package.json
+!vercel.json

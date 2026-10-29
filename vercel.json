@@ -1,0 +1,11 @@
+{
+  "fluid": true,
+  "functions": {
+    "api/generate.js": { "maxDuration": 120 },
+    "api/image.js": { "maxDuration": 120 }
+  },
+  "headers": [{
+    "source": "/api/(.*)",
+    "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+  }]
+}

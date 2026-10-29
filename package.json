@@ -1,0 +1,7 @@
+{
+  "name": "lucid-agent-creator",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node tests/api.test.js" },
+  "engines": { "node": ">=20" }
+}
